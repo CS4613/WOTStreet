@@ -1,4 +1,4 @@
-# MapActivities
+# Word on the Street
 
 By: Jagger Harness and Noah Whited
 
