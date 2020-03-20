@@ -10,6 +10,8 @@ import android.location.Location
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
+import android.widget.RelativeLayout
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
@@ -21,6 +23,7 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import kotlinx.android.synthetic.main.activity_maps.*
 import java.io.IOException
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
@@ -42,12 +45,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         //Testing other features: We are wanting to replace last location with the new location and update map
+        ///Working as of 3/20 - JH
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(p0: LocationResult) {
                 super.onLocationResult(p0)
-
                 lastLocation = p0.lastLocation
+
                 placeMarkerOnMap(LatLng(lastLocation.latitude, lastLocation.longitude))
             }
         }
@@ -65,11 +69,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
         map = googleMap
         googleMap.getUiSettings().setZoomControlsEnabled(true) // This enables zoom controls on the map
         googleMap.setOnMarkerClickListener(this) //MapsActivity callback triggered when user clicks a marker
-        // Add a marker in New York and move the camera
-        // val myPlace = LatLng(40.73, -73.99)
-        // map.addMarker(MarkerOptions().position(myPlace).title("Marker in NY"))
-        // map.moveCamera(CameraUpdateFactory.newLatLngZoom(myPlace, 16.5f)) //used in the testing phase
-
         setUpMap() //initializes map once location permissions have been granted (see below).
     }
 
@@ -78,10 +77,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
     private fun placeMarkerOnMap(location: LatLng) {
         // Creates an object that sets the user's current location as the marker position
         val markerOptions = MarkerOptions().position(location)
-        val titleStr = getAddress(location)  // these two lines are still in testing stage
-        markerOptions.title(titleStr)
         // Adds the marker to the map
-        map.addMarker(markerOptions)
+        val buttonClicked = findViewById<Button>(R.id.button1)
+        buttonClicked.setOnClickListener {
+            map.addMarker(markerOptions)
+        }
     }
 
     companion object {
@@ -109,7 +109,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
                 lastLocation = location // If null, get the location.
                 val currentLatLng = LatLng(location.latitude, location.longitude) // Retrieves current location
                 placeMarkerOnMap(currentLatLng) // When map is set up, marker will be shown
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 12f)) // Animates camera zoom level
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 17f)) // Animates camera zoom level
             }
         }
     }
@@ -131,10 +131,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
         // Create an instance of LocationRequest and handle changes to state of user's location
         locationRequest = LocationRequest()
         // The rate in which the app will receive location updates
-        locationRequest.interval = 10000
-        // The fastest rate in which the app can handle updates
-        locationRequest.fastestInterval = 5000
-        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        locationRequest.setInterval(3000)
+        // Sets location accuracy to high accuracy
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
 
         val builder = LocationSettingsRequest.Builder()
             .addLocationRequest(locationRequest)
@@ -166,13 +165,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
         }
     }
 
-    // Used if wanting to stop location updates
+    // Used if app is on background
     override fun onPause() {
         super.onPause()
-        fusedLocationClient.removeLocationUpdates(locationCallback)
+        // fusedLocationClient.removeLocationUpdates(locationCallback)
+        locationRequest.setInterval(10000)
+        locationRequest.setPriority(LocationRequest.PRIORITY_NO_POWER)
     }
 
-    // If you want to resume location updates
+    // If app is in the foreground
     public override fun onResume() {
         super.onResume()
         if (!locationUpdateState) {
@@ -190,31 +191,4 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
             }
         }
     }
-
-    // Still testing, in case we want to use geocoder
-    private fun getAddress(latLng: LatLng): String {
-        // Turns a latitude/longitude coordinate into an address
-        val geocoder = Geocoder(this)
-        val addresses: List<Address>?
-        val address: Address?
-        var addressText = ""
-
-        try {
-            // Gets address from location passed to method
-            addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
-            // If response contains address, append it to a string and return
-            if (null != addresses && !addresses.isEmpty()) {
-                address = addresses[0]
-                for (i in 0 until address.maxAddressLineIndex) {
-                    addressText += if (i == 0) address.getAddressLine(i) else "\n" + address.getAddressLine(i)
-                }
-            }
-        } catch (e: IOException) {
-            Log.e("MapsActivity", e.localizedMessage)
-        }
-
-        return addressText
-    }
-
-
 }
