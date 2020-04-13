@@ -1,21 +1,27 @@
 package com.example.maptest
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
-import android.location.Address
-import android.location.Geocoder
 import android.location.Location
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
-import android.widget.RelativeLayout
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.FuelError
+import com.github.kittinunf.fuel.core.Headers
+import com.github.kittinunf.fuel.core.extensions.jsonBody
+import com.github.kittinunf.fuel.httpPost
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
-
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -24,11 +30,12 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.android.synthetic.main.activity_maps.*
-import java.io.IOException
+import org.json.JSONObject
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
     // Class will implement the on marker click listener interface
     private lateinit var map: GoogleMap // The map that we will be using
+    private lateinit var marker: Marker // Markers
     private lateinit var fusedLocationClient: FusedLocationProviderClient // Will be used later to get location
     private lateinit var lastLocation: Location // Retrieves last known location of user
     private lateinit var locationCallback: LocationCallback // Callback for location tracking
@@ -38,6 +45,44 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
+//        Fuel.get("http://localhost:8080/test")
+//            .responseString{ request, response, result ->
+//                println("Did I get a response bacK?")
+//            }
+//        Fuel.post("http://localhost:8080/test")
+//            .jsonBody("{\"foo\" : \"bar\" }")
+//            .responseString{request, response, result ->
+//                println(result.get())
+//            }
+
+//        "http://localhost:8080/test".httpPost().response{
+//                request, response, result ->
+//            //response handling
+//        }
+//        val bodyJson =
+//            "\n  { \"title\" : \"foo\",\n    \"body\" : \"bar\",\n    \"id\" : \"1\"\n  }\n"
+//        val (request, response, result) = Fuel.post("http://localhost:8080/test")
+//            .jsonBody(bodyJson)
+//            .response()
+
+//        val json = JSONObject()
+//        json.put("body", "foo")
+//
+////synchronous call
+//        val (ignoredRequest, ignoredResponse, result) =
+//            Fuel.post("https://localhost:8080/test")
+//                .header("Authorization" to " token ")
+//                .body(json.toString())
+//                .responseString()
+//
+////do something with result
+//
+//        result.fold(success = {
+//            println("AYE")
+//        }, failure = {
+//            println("Why did it fail")
+//        })
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -67,7 +112,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
      */
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        googleMap.getUiSettings().setZoomControlsEnabled(true) // This enables zoom controls on the map
+        googleMap.uiSettings.isZoomControlsEnabled = true // This enables zoom controls on the map
         googleMap.setOnMarkerClickListener(this) //MapsActivity callback triggered when user clicks a marker
         setUpMap() //initializes map once location permissions have been granted (see below).
     }
@@ -80,10 +125,70 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
         // Adds the marker to the map
         val buttonClicked = findViewById<Button>(R.id.button1)
         buttonClicked.setOnClickListener {
-            map.addMarker(markerOptions)
+            marker = map.addMarker(markerOptions) // Marker added to map, dialog box displayed
+
+            val dialog = AlertDialog.Builder(this)
+            val alert = dialog.create()
+
+            val layout = LinearLayout(this)
+            layout.orientation = LinearLayout.VERTICAL
+
+            val titleBox = EditText(this)
+            titleBox.hint = "Location Name"
+            layout.addView(titleBox) // Notice this is an add method
+
+            val descriptionBox = EditText(this)
+            descriptionBox.hint = "Leave Message"
+            layout.addView(descriptionBox) // Another add method
+
+            val positive = Button(this)
+            positive.text = "Confirm"
+            layout.addView(positive)
+            positive.setOnClickListener {
+                var title = titleBox.text;
+                var message = descriptionBox.text;
+                println("The title entered: $title")
+                println("The message entered: $message")
+                Toast.makeText(this, "Submitted.", Toast.LENGTH_LONG).show()
+
+                Fuel.get("http://10.0.0.2:8080/test")
+                    .responseString{ request, response, result ->
+                        try {
+                            println(result.get())
+                        }
+                        catch(e:FuelError){
+                            println(e)
+                        }
+                    }
+//                Fuel.post("http://10.0.0.2:8080/test")
+//                    .jsonBody("{ \"foo\" : \"bar\" }")
+//                    .also { println(it) }
+//                    .response { result -> println(result) } //is this right?
+                alert.dismiss()
+            }
+
+//            Fuel.get("http://localhost:8080/test")
+//            .responseString{ request, response, result ->
+//                println("Did I get a response bacK?")
+//            }
+//        Fuel.post("http://localhost:8080/test")
+//            .jsonBody("{\"foo\" : \"bar\" }")
+//            .responseString{request, response, result ->
+//                println(result.get())
+//            }
+
+            val negative = Button(this)
+            negative.text = "Cancel"
+            layout.addView(negative)
+            negative.setOnClickListener {
+                alert.dismiss()
+                marker.remove()
+            }
+
+            alert.setView(layout) // Again this is a set method, not add
+            alert.show()
         }
     }
-
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1 // Used to request location permission
         private const val REQUEST_CHECK_SETTINGS = 2 // Request code that will be passed to onActivityResult
@@ -192,3 +297,4 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
         }
     }
 }
+

@@ -31,19 +31,5 @@
         android:text="@string/button"
         android:textColor="#ffffff" />
 
-<!--    Text box to leave message still in progress-->
-    <!--    <EditText-->
-<!--        android:id="@+id/message"-->
-<!--        android:inputType="textMultiLine"-->
-<!--        android:textColorHint="@color/white"-->
-<!--        android:textColor="@color/white"-->
-<!--        android:layout_width="275dp"-->
-<!--        android:layout_height="225dp"-->
-<!--        android:maxHeight="225dp"-->
-<!--        android:layout_centerHorizontal="true"-->
-<!--        android:layout_centerVertical="true"-->
-<!--        android:hint="Leave a message"-->
-<!--        android:gravity="left"-->
-<!--        android:background="@color/black" />-->
 
 </RelativeLayout>
